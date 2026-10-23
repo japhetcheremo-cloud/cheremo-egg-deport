@@ -1,0 +1,58 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login | Cheremo Egg Depot</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥚</text></svg>">
+</head>
+<body class="login-body">
+
+<div class="login-card">
+  <div class="login-card-header">
+    <div class="login-brand-logo">🥚</div>
+    <h2>Cheremo Egg Depot</h2>
+    <p>Management System & POS</p>
+  </div>
+
+  <div class="login-card-body">
+    {% if messages %}
+      <div style="margin-bottom: 1.25rem;">
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }}" style="padding:0.75rem 1rem; font-size:0.875rem;">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post" action="{% url 'login' %}">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label for="id_username" class="form-label">Username</label>
+        <input type="text" name="username" id="id_username" class="form-control" placeholder="japhet" required autofocus>
+      </div>
+
+      <div class="form-group">
+        <label for="id_password" class="form-label">Password</label>
+        <input type="password" name="password" id="id_password" class="form-control" placeholder="Enter password" required>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block" style="margin-top: 1rem; padding: 0.85rem;">
+        <span>🔐</span> Sign In to Dashboard
+      </button>
+    </form>
+
+    <div style="margin-top: 1.5rem; text-align: center; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border-light); padding-top: 1rem;">
+      Business Owner: <strong>Japhet</strong><br>
+      Timezone: <strong>Africa/Nairobi</strong> | Currency: <strong>KES</strong>
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'js/script.js' %}"></script>
+</body>
+</html>

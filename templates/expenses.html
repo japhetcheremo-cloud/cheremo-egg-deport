@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Operating Expenses | Cheremo Egg Depot{% endblock %}
+{% block page_title %}Expense Management{% endblock %}
+
+{% block content %}
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:2rem; margin-bottom:2.5rem;">
+  <!-- Add Expense Form -->
+  <div class="card">
+    <div class="card-header-clean">
+      <h3 class="card-title-clean">💸 Record Operating Expense</h3>
+      <span class="badge badge-expense">Operating Outflow</span>
+    </div>
+
+    <form method="post" action="{% url 'expenses' %}">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label for="id_category" class="form-label">Expense Category *</label>
+        {{ form.category }}
+        {% if form.category.errors %}<div class="form-error">{{ form.category.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="form-group">
+        <label for="id_description" class="form-label">Description *</label>
+        {{ form.description }}
+        {% if form.description.errors %}<div class="form-error">{{ form.description.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="form-group">
+        <label for="id_amount" class="form-label">Amount (KES) *</label>
+        {{ form.amount }}
+        {% if form.amount.errors %}<div class="form-error">{{ form.amount.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="form-group">
+        <label for="id_expense_date" class="form-label">Expense Date & Time *</label>
+        {{ form.expense_date }}
+        {% if form.expense_date.errors %}<div class="form-error">{{ form.expense_date.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="form-group">
+        <label for="id_notes" class="form-label">Optional Notes</label>
+        {{ form.notes }}
+        {% if form.notes.errors %}<div class="form-error">{{ form.notes.errors.0 }}</div>{% endif %}
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block" style="padding:0.85rem;">
+        <span>💾</span> Save Operating Expense
+      </button>
+    </form>
+  </div>
+
+  <!-- Expense Summary Cards -->
+  <div style="display:flex; flex-direction:column; gap:1.25rem;">
+    <div class="card metric-card accent-error">
+      <div class="metric-title">This Month's Total Expenses</div>
+      <div class="metric-value">KSh {{ month_expenses_total|floatformat:2 }}</div>
+      <div class="metric-sub">
+        Direct operating deductions reducing net business profit.
+      </div>
+    </div>
+
+    <div class="card" style="background:#FFFDF8; border-color:var(--border-light);">
+      <div class="card-header-clean">
+        <h4 style="font-size:1rem; font-weight:700;">📌 Common Expense Categories</h4>
+      </div>
+      <ul style="list-style:none; display:flex; flex-direction:column; gap:0.6rem; font-size:0.9rem;">
+        <li style="display:flex; justify-content:space-between; padding:0.5rem; background:var(--surface-white); border-radius:var(--radius-sm); border:1px solid var(--border-light);">
+          <span>🏍️ <strong>Transport & Fuel</strong></span>
+          <small style="color:var(--text-muted);">Delivery / collection trips</small>
+        </li>
+        <li style="display:flex; justify-content:space-between; padding:0.5rem; background:var(--surface-white); border-radius:var(--radius-sm); border:1px solid var(--border-light);">
+          <span>📦 <strong>Packaging & Paper Trays</strong></span>
+          <small style="color:var(--text-muted);">Trays, polythene bags</small>
+        </li>
+        <li style="display:flex; justify-content:space-between; padding:0.5rem; background:var(--surface-white); border-radius:var(--radius-sm); border:1px solid var(--border-light);">
+          <span>💡 <strong>Utilities</strong></span>
+          <small style="color:var(--text-muted);">Electricity, water</small>
+        </li>
+        <li style="display:flex; justify-content:space-between; padding:0.5rem; background:var(--surface-white); border-radius:var(--radius-sm); border:1px solid var(--border-light);">
+          <span>🏠 <strong>Rent & Depot Storage</strong></span>
+          <small style="color:var(--text-muted);">Premises leasing</small>
+        </li>
+      </ul>
+
+      <div style="margin-top:1.25rem; font-size:0.8rem; background:#FFF4DC; padding:0.75rem; border-radius:var(--radius-sm); line-height:1.4;">
+        ⚠️ <strong>Accounting Principle:</strong> Egg stock restocking from suppliers is an inventory asset purchase, NOT an operating expense. Do not enter egg restocking costs here.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Expenses Table -->
+<div class="card">
+  <div class="card-header-clean">
+    <h3 class="card-title-clean">📜 Expense History</h3>
+    <form method="get" action="{% url 'expenses' %}" style="display:flex; gap:0.5rem;">
+      <select name="category" class="form-control" style="padding:0.4rem 0.8rem; font-size:0.85rem; width:180px;">
+        <option value="">All Categories</option>
+        {% for cat_val, cat_label in categories %}
+          <option value="{{ cat_val }}" {% if category_filter == cat_val %}selected{% endif %}>{{ cat_label }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+      {% if category_filter %}<a href="{% url 'expenses' %}" class="btn btn-secondary btn-sm">Clear</a>{% endif %}
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table-custom">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Date & Time</th>
+          <th>Category</th>
+          <th>Description</th>
+          <th>Amount (KES)</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in page_obj %}
+          <tr>
+            <td><strong>#{{ e.id }}</strong></td>
+            <td><small>{{ e.expense_date|date:"d M Y, H:i" }}</small></td>
+            <td><span class="badge badge-expense">{{ e.get_category_display }}</span></td>
+            <td><strong>{{ e.description }}</strong></td>
+            <td><strong style="color:var(--color-error);">KSh {{ e.amount|floatformat:2 }}</strong></td>
+            <td><small>{{ e.notes|default:"-" }}</small></td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" style="text-align:center; padding:2rem; color:var(--text-muted);">
+              No operating expenses recorded.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.has_other_pages %}
+    <div class="pagination-container">
+      <div style="font-size:0.85rem; color:var(--text-muted);">
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+      </div>
+      <div class="pagination-pages">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}{% if category_filter %}&category={{ category_filter }}{% endif %}" class="page-btn">&laquo; Prev</a>
+        {% endif %}
+        <span class="page-btn active">{{ page_obj.number }}</span>
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}{% if category_filter %}&category={{ category_filter }}{% endif %}" class="page-btn">Next &raquo;</a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

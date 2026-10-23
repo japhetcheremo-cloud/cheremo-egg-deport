@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}Financial & Profit Reports | Cheremo Egg Depot{% endblock %}
+{% block page_title %}Financial Reports & Accounting Analytics{% endblock %}
+
+{% block content %}
+<!-- Period Selector & Date Filter Card -->
+<div class="card" style="margin-bottom:2rem;">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+    <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+      <a href="?period=daily" class="btn {% if period == 'daily' %}btn-primary{% else %}btn-secondary{% endif %} btn-sm">Today</a>
+      <a href="?period=weekly" class="btn {% if period == 'weekly' %}btn-primary{% else %}btn-secondary{% endif %} btn-sm">Last 7 Days</a>
+      <a href="?period=monthly" class="btn {% if period == 'monthly' %}btn-primary{% else %}btn-secondary{% endif %} btn-sm">This Month</a>
+      <a href="?period=all" class="btn {% if period == 'all' %}btn-primary{% else %}btn-secondary{% endif %} btn-sm">All Time</a>
+    </div>
+
+    <form method="get" action="{% url 'reports' %}" style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+      <input type="hidden" name="period" value="custom">
+      <input type="date" name="start_date" value="{{ start_date }}" class="form-control" style="padding:0.4rem 0.75rem; font-size:0.85rem;" required>
+      <span style="font-size:0.85rem;">to</span>
+      <input type="date" name="end_date" value="{{ end_date }}" class="form-control" style="padding:0.4rem 0.75rem; font-size:0.85rem;" required>
+      <button type="submit" class="btn btn-secondary btn-sm">Custom Filter</button>
+    </form>
+  </div>
+</div>
+
+<div style="margin-bottom:1.5rem;">
+  <h3 style="font-size:1.25rem; font-weight:800; color:var(--text-dark);">
+    Report Period: <span style="color:var(--primary-orange-hover);">{{ period_label }}</span>
+  </h3>
+</div>
+
+<!-- Primary Financial Metrics Grid -->
+<div class="metrics-grid">
+  <!-- Revenue -->
+  <div class="card metric-card accent-success">
+    <div class="metric-title">1. Total Sales Revenue</div>
+    <div class="metric-value">KSh {{ summary.total_revenue|floatformat:2 }}</div>
+    <div class="metric-sub positive">
+      {{ summary.sales_count }} sales ({{ summary.total_eggs_sold }} eggs sold)
+    </div>
+  </div>
+
+  <!-- COGS -->
+  <div class="card metric-card accent-yellow">
+    <div class="metric-title">2. Cost of Goods Sold (COGS)</div>
+    <div class="metric-value">KSh {{ summary.total_cogs|floatformat:2 }}</div>
+    <div class="metric-sub">
+      Eggs sold × unit cost at sale
+    </div>
+  </div>
+
+  <!-- Gross Profit -->
+  <div class="card metric-card">
+    <div class="metric-title">3. Gross Profit</div>
+    <div class="metric-value" style="color:var(--color-success);">
+      KSh {{ summary.gross_profit|floatformat:2 }}
+    </div>
+    <div class="metric-sub">
+      Formula: Revenue − COGS
+    </div>
+  </div>
+
+  <!-- Net Profit -->
+  <div class="card metric-card {% if summary.net_profit >= 0 %}accent-success{% else %}accent-error{% endif %}">
+    <div class="metric-title">4. Net Profit</div>
+    <div class="metric-value" style="color:{% if summary.net_profit >= 0 %}var(--color-success){% else %}var(--color-error){% endif %};">
+      KSh {{ summary.net_profit|floatformat:2 }}
+    </div>
+    <div class="metric-sub">
+      Gross Profit − Expenses − Losses
+    </div>
+  </div>
+</div>
+
+<!-- Detailed Accounting Statement Table -->
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(340px, 1fr)); gap:2rem; margin-bottom:2.5rem;">
+  <!-- Income Statement -->
+  <div class="card">
+    <div class="card-header-clean">
+      <h3 class="card-title-clean">📑 Income Statement (P&L Breakdown)</h3>
+    </div>
+
+    <table class="table-custom" style="font-size:0.95rem;">
+      <tbody>
+        <tr style="background:#F6FBF7;">
+          <td><strong>A. Sales Revenue</strong></td>
+          <td style="text-align:right;"><strong style="color:var(--color-success);">+ KSh {{ summary.total_revenue|floatformat:2 }}</strong></td>
+        </tr>
+        <tr>
+          <td><span style="padding-left:1rem;">Less: Cost of Goods Sold (COGS)</span></td>
+          <td style="text-align:right; color:var(--text-muted);">- KSh {{ summary.total_cogs|floatformat:2 }}</td>
+        </tr>
+        <tr style="border-top:2px solid var(--border-light); font-weight:700;">
+          <td><strong>B. GROSS PROFIT (A − COGS)</strong></td>
+          <td style="text-align:right;"><strong style="color:var(--color-success);">KSh {{ summary.gross_profit|floatformat:2 }}</strong></td>
+        </tr>
+        <tr>
+          <td><span style="padding-left:1rem;">Less: Operating Expenses</span></td>
+          <td style="text-align:right; color:var(--color-error);">- KSh {{ summary.total_expenses|floatformat:2 }}</td>
+        </tr>
+        <tr>
+          <td><span style="padding-left:1rem;">Less: Egg Losses Cost ({{ summary.total_eggs_lost }} eggs)</span></td>
+          <td style="text-align:right; color:var(--color-error);">- KSh {{ summary.total_losses_cost|floatformat:2 }}</td>
+        </tr>
+        <tr style="border-top:2px solid #292929; background:#FFF8E8; font-size:1.05rem;">
+          <td><strong>C. NET BUSINESS PROFIT</strong></td>
+          <td style="text-align:right;">
+            <strong style="color:{% if summary.net_profit >= 0 %}var(--color-success){% else %}var(--color-error){% endif %};">
+              KSh {{ summary.net_profit|floatformat:2 }}
+            </strong>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top:1.5rem; background:#FFF4DC; padding:0.9rem; border-radius:var(--radius-sm); font-size:0.825rem; line-height:1.5;">
+      <strong>Capital Restocking vs Operating Costs:</strong><br>
+      During this period, <strong>KSh {{ summary.total_delivery_purchases|floatformat:2 }}</strong> ({{ summary.total_trays_received }} trays) was paid to suppliers for restocking.<br>
+      This capital inventory purchase is maintained on the balance sheet and is <em>not double-counted</em> as an expense.
+    </div>
+  </div>
+
+  <!-- Documented Accounting Principles -->
+  <div class="card" style="background:#FFFDF8;">
+    <div class="card-header-clean">
+      <h3 class="card-title-clean">📖 Transparent Accounting Formulas</h3>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:1rem; font-size:0.875rem;">
+      <div style="background:var(--surface-white); padding:0.85rem; border-radius:var(--radius-sm); border:1px solid var(--border-light);">
+        <strong style="color:var(--primary-orange-hover);">1. Sales Revenue:</strong>
+        <p style="color:var(--text-muted); margin-top:0.25rem;">
+          Sum of all active customer sales recorded during the selected period. Cancelled sales are fully excluded.
+        </p>
+      </div>
+
+      <div style="background:var(--surface-white); padding:0.85rem; border-radius:var(--radius-sm); border:1px solid var(--border-light);">
+        <strong style="color:var(--primary-orange-hover);">2. Cost of Goods Sold (COGS):</strong>
+        <p style="color:var(--text-muted); margin-top:0.25rem;">
+          <code>COGS = Quantity Sold × Weighted Average Cost (WAC) per egg at sale</code>
+        </p>
+      </div>
+
+      <div style="background:var(--surface-white); padding:0.85rem; border-radius:var(--radius-sm); border:1px solid var(--border-light);">
+        <strong style="color:var(--primary-orange-hover);">3. Operating Expenses:</strong>
+        <p style="color:var(--text-muted); margin-top:0.25rem;">
+          Day-to-day depot costs including transport, packaging paper trays, depot electricity, and labour.
+        </p>
+      </div>
+
+      <div style="background:var(--surface-white); padding:0.85rem; border-radius:var(--radius-sm); border:1px solid var(--border-light);">
+        <strong style="color:var(--primary-orange-hover);">4. Egg Losses Cost:</strong>
+        <p style="color:var(--text-muted); margin-top:0.25rem;">
+          <code>Loss Cost = Broken / Spoiled Eggs × WAC Unit Cost</code>. Accounted for once to prevent double-deduction.
+        </p>
+      </div>
+
+      <div style="background:var(--surface-white); padding:0.85rem; border-radius:var(--radius-sm); border:1px solid var(--border-light);">
+        <strong style="color:var(--primary-orange-hover);">5. Net Business Profit:</strong>
+        <p style="color:var(--text-muted); margin-top:0.25rem;">
+          <code>Net Profit = Gross Profit − Operating Expenses − Loss Cost</code>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

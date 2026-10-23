@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}Record Sale | Cheremo Egg Depot{% endblock %}
+{% block page_title %}Sales Management{% endblock %}
+
+{% block content %}
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(340px, 1fr)); gap:2rem; margin-bottom:2.5rem;">
+  <!-- Record Sale Form -->
+  <div class="card">
+    <div class="card-header-clean">
+      <h3 class="card-title-clean">🛒 Record New Egg Sale</h3>
+      <span class="badge badge-sale">Live Pricing Engine</span>
+    </div>
+
+    <!-- Available Stock Reminder -->
+    <div style="background:#FFF9E6; border:1px solid #FFE58F; padding:0.75rem 1rem; border-radius:var(--radius-sm); margin-bottom:1.25rem; font-size:0.875rem;">
+      Available Stock: <strong>{{ inventory.total_eggs }} eggs</strong> ({{ inventory.full_trays }} full trays, {{ inventory.loose_eggs }} loose).
+    </div>
+
+    <form method="post" action="{% url 'sales' %}">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label for="id_customer_name" class="form-label">Customer Name (Optional)</label>
+        {{ form.customer_name }}
+        {% if form.customer_name.errors %}<div class="form-error">{{ form.customer_name.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="form-group">
+        <label for="id_quantity" class="form-label">Quantity of Eggs *</label>
+        {{ form.quantity }}
+        {% if form.quantity.errors %}<div class="form-error">{{ form.quantity.errors.0 }}</div>{% endif %}
+        <div class="form-help">Type any number of eggs to see the cheapest bundle combination automatically.</div>
+      </div>
+
+      <!-- Live Pricing Preview Box -->
+      <div id="pricePreviewBox" class="live-preview-box" style="display:none;">
+        <div class="live-preview-header">
+          <span>⚡ Live Smart Pricing Preview</span>
+        </div>
+        <div id="previewTotal" class="live-preview-total">KSh 0.00</div>
+        <div id="previewBreakdown" class="live-preview-breakdown">Calculating optimal offers...</div>
+        <div id="stockWarning" class="alert alert-error" style="display:none; margin-top:0.75rem; padding:0.5rem 0.75rem; font-size:0.85rem;"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="id_sale_date" class="form-label">Sale Date & Time *</label>
+        {{ form.sale_date }}
+        {% if form.sale_date.errors %}<div class="form-error">{{ form.sale_date.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="form-group">
+        <label for="id_notes" class="form-label">Optional Notes</label>
+        {{ form.notes }}
+        {% if form.notes.errors %}<div class="form-error">{{ form.notes.errors.0 }}</div>{% endif %}
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block" style="padding:0.9rem; font-size:1.05rem;">
+        <span>✅</span> Complete Sale & Deduct Stock
+      </button>
+    </form>
+  </div>
+
+  <!-- Pricing Offer Cheat Sheet -->
+  <div class="card" style="background:#FFFDF8; border-color:var(--border-light);">
+    <div class="card-header-clean">
+      <h3 class="card-title-clean">📋 Configured Retail Offers</h3>
+      <a href="{% url 'settings' %}" class="btn btn-secondary btn-sm">Edit Prices</a>
+    </div>
+
+    <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem;">
+      The pricing engine dynamically computes the cheapest combination of offers to give your customers the best rate:
+    </p>
+
+    <div style="display:flex; flex-direction:column; gap:0.6rem; font-size:0.925rem;">
+      <div style="display:flex; justify-content:space-between; padding:0.6rem; background:var(--surface-white); border-radius:var(--radius-sm); border:1px solid var(--border-light);">
+        <span>🥚 1 Single Egg</span>
+        <strong>KSh {{ business.single_egg_price|floatformat:2 }}</strong>
+      </div>
+      <div style="display:flex; justify-content:space-between; padding:0.6rem; background:var(--surface-white); border-radius:var(--radius-sm); border:1px solid var(--border-light);">
+        <span>🥚🥚 2 Eggs Offer</span>
+        <strong>KSh {{ business.two_egg_price|floatformat:2 }}</strong>
+      </div>
+      <div style="display:flex; justify-content:space-between; padding:0.6rem; background:var(--surface-white); border-radius:var(--radius-sm); border:1px solid var(--border-light);">
+        <span>🥚🥚🥚 3 Eggs Offer</span>
+        <strong>KSh {{ business.three_egg_price|floatformat:2 }}</strong>
+      </div>
+      <div style="display:flex; justify-content:space-between; padding:0.6rem; background:var(--surface-white); border-radius:var(--radius-sm); border:1px solid var(--border-light);">
+        <span>📦 Half Tray (15 eggs)</span>
+        <strong>KSh {{ business.half_tray_price|floatformat:2 }}</strong>
+      </div>
+      <div style="display:flex; justify-content:space-between; padding:0.6rem; background:var(--surface-white); border-radius:var(--radius-sm); border:1px solid var(--border-light);">
+        <span>📦 Full Tray (30 eggs)</span>
+        <strong>KSh {{ business.full_tray_price|floatformat:2 }}</strong>
+      </div>
+    </div>
+
+    <div style="margin-top:1.5rem; background:#FFF4DC; padding:0.85rem; border-radius:var(--radius-sm); font-size:0.825rem; line-height:1.4;">
+      <strong>Sample combinations automatically calculated:</strong><br>
+      • 4 eggs = KSh 70.00 (2 × 2 eggs)<br>
+      • 5 eggs = KSh 90.00 (3 eggs + 2 eggs)<br>
+      • 10 eggs = KSh 175.00 (5 × 2 eggs)<br>
+      • 16 eggs = KSh 260.00 (15 eggs + 1 egg)<br>
+      • 31 eggs = KSh 500.00 (30 eggs + 1 egg)
+    </div>
+  </div>
+</div>
+
+<!-- Sales History Table -->
+<div class="card">
+  <div class="card-header-clean">
+    <h3 class="card-title-clean">📜 Sales History</h3>
+    <form method="get" action="{% url 'sales' %}" style="display:flex; gap:0.5rem;">
+      <input type="text" name="q" value="{{ query }}" placeholder="Search customer, ID, or notes..." class="form-control" style="padding:0.4rem 0.8rem; font-size:0.85rem; width:220px;">
+      <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+      {% if query %}<a href="{% url 'sales' %}" class="btn btn-secondary btn-sm">Reset</a>{% endif %}
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table-custom">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Date & Time</th>
+          <th>Customer</th>
+          <th>Quantity</th>
+          <th>Amount (KES)</th>
+          <th>COGS</th>
+          <th>Gross Profit</th>
+          <th>Applied Breakdown</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in page_obj %}
+          <tr {% if s.is_cancelled %}style="opacity:0.6; background:#fafafa;"{% endif %}>
+            <td><strong>#{{ s.id }}</strong></td>
+            <td><small>{{ s.sale_date|date:"d M Y, H:i" }}</small></td>
+            <td>
+              {{ s.customer_name }}
+              {% if s.is_cancelled %}<span class="badge badge-cancelled">Cancelled</span>{% endif %}
+            </td>
+            <td><strong>{{ s.quantity }} eggs</strong></td>
+            <td><strong style="color:var(--primary-orange-hover);">KSh {{ s.total_amount|floatformat:2 }}</strong></td>
+            <td><small>KSh {{ s.total_cost_of_goods_sold|floatformat:2 }}</small></td>
+            <td><strong style="color:var(--color-success);">KSh {{ s.gross_profit|floatformat:2 }}</strong></td>
+            <td><small style="color:var(--text-muted);">{{ s.pricing_breakdown }}</small></td>
+            <td>
+              {% if not s.is_cancelled %}
+                <a href="{% url 'cancel_sale' s.id %}" class="btn btn-danger btn-sm" title="Safely cancel sale and restore stock">
+                  Cancel
+                </a>
+              {% else %}
+                <span style="font-size:0.75rem; color:var(--text-muted);">Restored</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="9" style="text-align:center; padding:2rem; color:var(--text-muted);">
+              No sales records match your criteria.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if page_obj.has_other_pages %}
+    <div class="pagination-container">
+      <div style="font-size:0.85rem; color:var(--text-muted);">
+        Showing page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} ({{ page_obj.paginator.count }} total sales)
+      </div>
+      <div class="pagination-pages">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}" class="page-btn">&laquo; Prev</a>
+        {% endif %}
+        <span class="page-btn active">{{ page_obj.number }}</span>
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}" class="page-btn">Next &raquo;</a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

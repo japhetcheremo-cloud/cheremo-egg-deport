@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Inventory & Stock Movements | Cheremo Egg Depot{% endblock %}
+{% block page_title %}Egg Inventory & Audits{% endblock %}
+
+{% block content %}
+<!-- Inventory Snapshot Cards -->
+<div class="metrics-grid">
+  <div class="card metric-card accent-yellow">
+    <div class="metric-title">Total Eggs in Stock</div>
+    <div class="metric-value">{{ inventory.total_eggs }} <span style="font-size:1.1rem; color:var(--text-muted);">eggs</span></div>
+    <div class="metric-sub">
+      Live physical inventory in the depot
+    </div>
+  </div>
+
+  <div class="card metric-card">
+    <div class="metric-title">Full Trays Available</div>
+    <div class="metric-value">{{ inventory.full_trays }} <span style="font-size:1.1rem; color:var(--text-muted);">trays</span></div>
+    <div class="metric-sub">
+      {{ inventory.full_trays }} × 30 eggs = {{ inventory.full_trays|stringformat:"d"|add:"0" }} eggs in trays
+    </div>
+  </div>
+
+  <div class="card metric-card">
+    <div class="metric-title">Loose Eggs Remaining</div>
+    <div class="metric-value">{{ inventory.loose_eggs }} <span style="font-size:1.1rem; color:var(--text-muted);">eggs</span></div>
+    <div class="metric-sub">
+      Single eggs ready for piece retail
+    </div>
+  </div>
+
+  <div class="card metric-card accent-success">
+    <div class="metric-title">Depot Stock Asset Value</div>
+    <div class="metric-value">KSh {{ inventory.stock_value|floatformat:2 }}</div>
+    <div class="metric-sub">
+      Weighted Average Cost: <strong>KSh {{ inventory.weighted_average_cost_per_egg|floatformat:2 }}/egg</strong>
+    </div>
+  </div>
+</div>
+
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(340px, 1fr)); gap:2rem; margin-bottom:2.5rem;">
+  <!-- Stock Loss & Adjustment Form -->
+  <div class="card">
+    <div class="card-header-clean">
+      <h3 class="card-title-clean">⚠️ Record Egg Loss or Count Adjustment</h3>
+      <span class="badge badge-loss">Inventory Audit</span>
+    </div>
+
+    <form method="post" action="{% url 'inventory' %}">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label for="id_adjustment_type" class="form-label">Adjustment Type *</label>
+        {{ adj_form.adjustment_type }}
+        <div class="form-help">Select Loss to deduct broken/spoiled eggs, or Gain for count surplus.</div>
+        {% if adj_form.adjustment_type.errors %}<div class="form-error">{{ adj_form.adjustment_type.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="form-group">
+        <label for="id_quantity" class="form-label">Number of Loose Eggs *</label>
+        {{ adj_form.quantity }}
+        {% if adj_form.quantity.errors %}<div class="form-error">{{ adj_form.quantity.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="form-group">
+        <label for="id_reason" class="form-label">Reason *</label>
+        {{ adj_form.reason }}
+        {% if adj_form.reason.errors %}<div class="form-error">{{ adj_form.reason.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="form-group">
+        <label for="id_adjustment_date" class="form-label">Date & Time *</label>
+        {{ adj_form.adjustment_date }}
+        {% if adj_form.adjustment_date.errors %}<div class="form-error">{{ adj_form.adjustment_date.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="form-group">
+        <label for="id_notes" class="form-label">Incident Notes / Investigation</label>
+        {{ adj_form.notes }}
+        {% if adj_form.notes.errors %}<div class="form-error">{{ adj_form.notes.errors.0 }}</div>{% endif %}
+      </div>
+
+      <button type="submit" class="btn btn-danger btn-block" style="padding:0.85rem;">
+        <span>📝</span> Submit Adjustment & Update Stock
+      </button>
+    </form>
+  </div>
+
+  <!-- Stock Health & Restocking Summary -->
+  <div class="card calculator-card" style="margin-bottom:0;">
+    <div class="card-header-clean">
+      <h3 class="card-title-clean">🛡️ Stock Health & Thresholds</h3>
+    </div>
+
+    <div style="font-size:0.925rem; line-height:1.6; display:flex; flex-direction:column; gap:0.75rem;">
+      <div style="display:flex; justify-content:space-between; padding:0.6rem; background:var(--surface-white); border-radius:var(--radius-sm); border:1px solid var(--border-light);">
+        <span>Configured Low-Stock Alert:</span>
+        <strong>{{ business.low_stock_threshold }} eggs ({{ business.low_stock_threshold|divisibleby:30|yesno:"trays,eggs" }})</strong>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; padding:0.6rem; background:var(--surface-white); border-radius:var(--radius-sm); border:1px solid var(--border-light);">
+        <span>Stock Status:</span>
+        {% if is_low_stock %}
+          <strong style="color:var(--color-error);">⚠️ LOW STOCK WARNING</strong>
+        {% else %}
+          <strong style="color:var(--color-success);">✅ OPTIMAL STOCK LEVEL</strong>
+        {% endif %}
+      </div>
+
+      <div style="display:flex; justify-content:space-between; padding:0.6rem; background:var(--surface-white); border-radius:var(--radius-sm); border:1px solid var(--border-light);">
+        <span>Costing Strategy:</span>
+        <strong>Weighted Average Cost (WAC)</strong>
+      </div>
+    </div>
+
+    <div style="margin-top:1.5rem; background:#FFF4DC; padding:0.85rem; border-radius:var(--radius-sm); font-size:0.825rem; line-height:1.4;">
+      <strong>Audit Protection Guarantee:</strong><br>
+      • Every sale, restock, loss, and count correction is assigned a timestamped, signed movement log.<br>
+      • Negative inventory is strictly prohibited by server-side locking and validation.<br>
+      • Historical sales and purchase costs are preserved so prior financials remain accurate.
+    </div>
+  </div>
+</div>
+
+<!-- Stock Movements Audit Trail Table -->
+<div class="card">
+  <div class="card-header-clean">
+    <h3 class="card-title-clean">📜 Auditable Stock Movements Log</h3>
+    <a href="{% url 'export_transactions_csv' %}" class="btn btn-secondary btn-sm">📥 Export CSV</a>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table-custom">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Date & Time</th>
+          <th>Movement Type</th>
+          <th>Quantity Change</th>
+          <th>Stock Balance After</th>
+          <th>Unit Cost</th>
+          <th>Total Value</th>
+          <th>Reference / Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in page_obj %}
+          <tr>
+            <td><strong>#{{ m.id }}</strong></td>
+            <td><small>{{ m.created_at|date:"d M Y, H:i" }}</small></td>
+            <td>
+              <span class="badge 
+                {% if m.movement_type == 'sale' %}badge-sale
+                {% elif m.movement_type == 'delivery' %}badge-delivery
+                {% elif m.movement_type == 'loss' %}badge-loss
+                {% else %}badge-adjustment{% endif %}">
+                {{ m.get_movement_type_display }}
+              </span>
+            </td>
+            <td>
+              <strong style="color:{% if m.quantity_change > 0 %}var(--color-success){% else %}var(--color-error){% endif %};">
+                {% if m.quantity_change > 0 %}+{% endif %}{{ m.quantity_change }} eggs
+              </strong>
+            </td>
+            <td><strong>{{ m.balance_after }} eggs</strong></td>
+            <td><small>KSh {{ m.unit_cost|floatformat:2 }}</small></td>
+            <td>KSh {{ m.total_value|floatformat:2 }}</td>
+            <td><small>{{ m.description }}</small></td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="8" style="text-align:center; padding:2rem; color:var(--text-muted);">
+              No stock movements recorded yet.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.has_other_pages %}
+    <div class="pagination-container">
+      <div style="font-size:0.85rem; color:var(--text-muted);">
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+      </div>
+      <div class="pagination-pages">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}" class="page-btn">&laquo; Prev</a>
+        {% endif %}
+        <span class="page-btn active">{{ page_obj.number }}</span>
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}" class="page-btn">Next &raquo;</a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

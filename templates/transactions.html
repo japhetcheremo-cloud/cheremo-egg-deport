@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Transaction History | Cheremo Egg Depot{% endblock %}
+{% block page_title %}Complete Audit Trail & Transactions{% endblock %}
+
+{% block content %}
+<!-- Search & Filters Toolbar -->
+<div class="card" style="margin-bottom:2rem;">
+  <form method="get" action="{% url 'transactions' %}" style="display:flex; flex-wrap:wrap; gap:1rem; align-items:flex-end;">
+    <div style="flex:1; min-width:200px;">
+      <label class="form-label" style="font-size:0.8rem;">Search Description / Reference</label>
+      <input type="text" name="q" value="{{ search_query }}" placeholder="e.g. Sale #1, Wangige Farm, broken..." class="form-control" style="padding:0.5rem 0.85rem;">
+    </div>
+
+    <div style="min-width:180px;">
+      <label class="form-label" style="font-size:0.8rem;">Transaction Type</label>
+      <select name="type" class="form-control" style="padding:0.5rem 0.85rem;">
+        <option value="">All Movement Types</option>
+        {% for code, label in movement_types %}
+          <option value="{{ code }}" {% if type_filter == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label class="form-label" style="font-size:0.8rem;">From Date</label>
+      <input type="date" name="start_date" value="{{ start_date }}" class="form-control" style="padding:0.5rem 0.85rem;">
+    </div>
+
+    <div>
+      <label class="form-label" style="font-size:0.8rem;">To Date</label>
+      <input type="date" name="end_date" value="{{ end_date }}" class="form-control" style="padding:0.5rem 0.85rem;">
+    </div>
+
+    <div style="display:flex; gap:0.5rem;">
+      <button type="submit" class="btn btn-primary" style="padding:0.55rem 1.15rem;">Filter</button>
+      <a href="{% url 'transactions' %}" class="btn btn-secondary" style="padding:0.55rem 1rem;">Reset</a>
+      <a href="{% url 'export_transactions_csv' %}" class="btn btn-success" style="padding:0.55rem 1rem;">📥 CSV</a>
+    </div>
+  </form>
+</div>
+
+<!-- Transactions Table -->
+<div class="card">
+  <div class="card-header-clean">
+    <h3 class="card-title-clean">📜 Transaction Records (Newest First)</h3>
+    <span style="font-size:0.85rem; color:var(--text-muted);">
+      Total records: <strong>{{ page_obj.paginator.count }}</strong>
+    </span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table-custom">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Date & Time</th>
+          <th>Type</th>
+          <th>Quantity Change</th>
+          <th>Balance After</th>
+          <th>Unit Cost</th>
+          <th>Total Value (KES)</th>
+          <th>Reference</th>
+          <th>Description & Context</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in page_obj %}
+          <tr>
+            <td><strong>#{{ m.id }}</strong></td>
+            <td><small>{{ m.created_at|date:"d M Y, H:i:s" }}</small></td>
+            <td>
+              <span class="badge 
+                {% if m.movement_type == 'sale' %}badge-sale
+                {% elif m.movement_type == 'delivery' %}badge-delivery
+                {% elif m.movement_type == 'loss' %}badge-loss
+                {% elif m.movement_type == 'opening_stock' %}badge-delivery
+                {% else %}badge-adjustment{% endif %}">
+                {{ m.get_movement_type_display }}
+              </span>
+            </td>
+            <td>
+              <strong style="color:{% if m.quantity_change > 0 %}var(--color-success){% else %}var(--color-error){% endif %};">
+                {% if m.quantity_change > 0 %}+{% endif %}{{ m.quantity_change }} eggs
+              </strong>
+            </td>
+            <td><strong>{{ m.balance_after }}</strong> eggs</td>
+            <td><small>KSh {{ m.unit_cost|floatformat:2 }}</small></td>
+            <td><strong>KSh {{ m.total_value|floatformat:2 }}</strong></td>
+            <td><small>{{ m.reference_id|default:"-" }}</small></td>
+            <td>{{ m.description }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="9" style="text-align:center; padding:2.5rem; color:var(--text-muted);">
+              No transactions match your filter criteria.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if page_obj.has_other_pages %}
+    <div class="pagination-container">
+      <div style="font-size:0.85rem; color:var(--text-muted);">
+        Showing page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+      </div>
+      <div class="pagination-pages">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}" class="page-btn">&laquo; Prev</a>
+        {% endif %}
+        <span class="page-btn active">{{ page_obj.number }}</span>
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}" class="page-btn">Next &raquo;</a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}Settings & Pricing | Cheremo Egg Depot{% endblock %}
+{% block page_title %}Depot Configuration & Pricing Rules{% endblock %}
+
+{% block content %}
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(340px, 1fr)); gap:2rem; margin-bottom:2.5rem;">
+  <!-- Settings Form -->
+  <div class="card">
+    <div class="card-header-clean">
+      <h3 class="card-title-clean">⚙️ Business Profile & Pricing</h3>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" action="{% url 'settings' %}">
+      {% csrf_token %}
+      <input type="hidden" name="update_settings" value="1">
+
+      <h4 style="font-size:0.95rem; color:var(--primary-orange-hover); text-transform:uppercase; margin-bottom:0.75rem; letter-spacing:0.5px;">
+        1. Depot Identity
+      </h4>
+
+      <div class="form-group">
+        <label for="id_business_name" class="form-label">Business Name</label>
+        {{ settings_form.business_name }}
+      </div>
+
+      <div class="form-group">
+        <label for="id_owner_name" class="form-label">Business Owner Name</label>
+        {{ settings_form.owner_name }}
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+        <div class="form-group">
+          <label for="id_contact_phone" class="form-label">Phone</label>
+          {{ settings_form.contact_phone }}
+        </div>
+        <div class="form-group">
+          <label for="id_contact_email" class="form-label">Email</label>
+          {{ settings_form.contact_email }}
+        </div>
+      </div>
+
+      <hr style="border:none; border-top:1px solid var(--border-light); margin:1.5rem 0;">
+
+      <h4 style="font-size:0.95rem; color:var(--primary-orange-hover); text-transform:uppercase; margin-bottom:0.75rem; letter-spacing:0.5px;">
+        2. Configurable Retail Egg Prices (KES)
+      </h4>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+        <div class="form-group">
+          <label for="id_single_egg_price" class="form-label">1 Single Egg (KES)</label>
+          {{ settings_form.single_egg_price }}
+          <div class="form-help">Initial: KSh 20.00</div>
+        </div>
+        <div class="form-group">
+          <label for="id_two_egg_price" class="form-label">2 Eggs Offer (KES)</label>
+          {{ settings_form.two_egg_price }}
+          <div class="form-help">Initial: KSh 35.00</div>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+        <div class="form-group">
+          <label for="id_three_egg_price" class="form-label">3 Eggs Offer (KES)</label>
+          {{ settings_form.three_egg_price }}
+          <div class="form-help">Initial: KSh 55.00</div>
+        </div>
+        <div class="form-group">
+          <label for="id_half_tray_price" class="form-label">Half Tray (15 eggs)</label>
+          {{ settings_form.half_tray_price }}
+          <div class="form-help">Initial: KSh 240.00</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="id_full_tray_price" class="form-label">Full Tray (30 eggs)</label>
+        {{ settings_form.full_tray_price }}
+        <div class="form-help">Initial: KSh 480.00</div>
+      </div>
+
+      <hr style="border:none; border-top:1px solid var(--border-light); margin:1.5rem 0;">
+
+      <h4 style="font-size:0.95rem; color:var(--primary-orange-hover); text-transform:uppercase; margin-bottom:0.75rem; letter-spacing:0.5px;">
+        3. Restock & Threshold Defaults
+      </h4>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+        <div class="form-group">
+          <label for="id_default_purchase_cost_per_tray" class="form-label">Purchase Cost/Tray (KES)</label>
+          {{ settings_form.default_purchase_cost_per_tray }}
+          <div class="form-help">Default supplier tray cost</div>
+        </div>
+        <div class="form-group">
+          <label for="id_low_stock_threshold" class="form-label">Low-Stock Alert (Eggs)</label>
+          {{ settings_form.low_stock_threshold }}
+          <div class="form-help">e.g. 300 eggs = 10 trays</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="id_logo" class="form-label">Depot Brand Logo</label>
+        {{ settings_form.logo }}
+        {% if settings.logo %}
+          <div style="margin-top:0.5rem;">
+            <img src="{{ settings.logo.url }}" alt="Logo" style="max-height:60px; border-radius:var(--radius-sm); border:1px solid #ddd;">
+          </div>
+        {% endif %}
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block" style="padding:0.85rem;">
+        <span>💾</span> Save All Settings & Prices
+      </button>
+    </form>
+  </div>
+
+  <!-- Opening Stock Initialization Box -->
+  <div style="display:flex; flex-direction:column; gap:1.5rem;">
+    <div class="card {% if settings.opening_stock_initialized %}calculator-card{% else %}metric-card accent-yellow{% endif %}">
+      <div class="card-header-clean">
+        <h3 class="card-title-clean">📦 Opening Stock Initialization</h3>
+        {% if settings.opening_stock_initialized %}
+          <span class="badge badge-sale">INITIALIZED</span>
+        {% else %}
+          <span class="badge badge-loss">PENDING</span>
+        {% endif %}
+      </div>
+
+      {% if not settings.opening_stock_initialized %}
+        <p style="font-size:0.875rem; color:var(--text-muted); margin-bottom:1.25rem;">
+          Establish the initial physical opening stock for Japhet's depot.
+          According to system specifications, this sets <strong>30 full trays (900 eggs)</strong> at KSh 400.00 per tray.
+        </p>
+
+        <form method="post" action="{% url 'settings' %}">
+          {% csrf_token %}
+          <input type="hidden" name="init_stock" value="1">
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+            <div class="form-group">
+              <label class="form-label">Initial Full Trays</label>
+              {{ opening_form.initial_trays }}
+            </div>
+            <div class="form-group">
+              <label class="form-label">Cost per Tray (KES)</label>
+              {{ opening_form.cost_per_tray }}
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-success btn-block" onclick="return confirm('Initialize opening stock now? This action can only be run once.');">
+            <span>🚀</span> Establish Initial Stock (900 eggs)
+          </button>
+        </form>
+      {% else %}
+        <div style="background:var(--surface-white); border:1px solid var(--border-light); border-radius:var(--radius-sm); padding:1rem; font-size:0.9rem;">
+          <div style="color:var(--color-success); font-weight:700; margin-bottom:0.5rem;">
+            ✅ Opening stock was successfully initialized!
+          </div>
+          <p style="font-size:0.85rem; color:var(--text-muted);">
+            Current inventory is <strong>{{ inventory.total_eggs }} eggs</strong> ({{ inventory.full_trays }} full trays, {{ inventory.loose_eggs }} loose).
+          </p>
+          <div style="margin-top:0.75rem; font-size:0.8rem; background:#FFF9E6; padding:0.6rem; border-radius:4px;">
+            🔒 Opening stock cannot be re-initialized. Subsequent inventory changes must be recorded through auditable <a href="{% url 'deliveries' %}">deliveries</a> or <a href="{% url 'inventory' %}">stock adjustments</a>.
+          </div>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Security & Account Management Card -->
+    <div class="card" style="background:#FFFDF8;">
+      <div class="card-header-clean">
+        <h4 style="font-size:1rem; font-weight:700;">🔐 Superuser Account & Security</h4>
+      </div>
+      <p style="font-size:0.875rem; color:var(--text-muted); margin-bottom:0.75rem;">
+        Logged in as: <strong>{{ request.user.username }}</strong><br>
+        Role: <strong>Depot Administrator</strong>
+      </p>
+      <div style="font-size:0.8rem; color:var(--text-muted); line-height:1.4;">
+        For comprehensive database auditing, user permissions, and Django administration:
+      </div>
+      <div style="margin-top:0.75rem;">
+        <a href="/admin/" target="_blank" class="btn btn-secondary btn-sm">
+          <span>🛠️</span> Open Django Admin Panel
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

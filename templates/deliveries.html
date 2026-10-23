@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}Deliveries & Restocking | Cheremo Egg Depot{% endblock %}
+{% block page_title %}Deliveries & Restocking{% endblock %}
+
+{% block content %}
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(340px, 1fr)); gap:2rem; margin-bottom:2.5rem;">
+  <!-- Record Delivery Form -->
+  <div class="card">
+    <div class="card-header-clean">
+      <h3 class="card-title-clean">🚚 Record Restocking Delivery</h3>
+      <span class="badge badge-delivery">Supplier Inflow</span>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" action="{% url 'deliveries' %}">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label for="id_supplier_name" class="form-label">Supplier Name *</label>
+        {{ delivery_form.supplier_name }}
+        {% if delivery_form.supplier_name.errors %}<div class="form-error">{{ delivery_form.supplier_name.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+        <div class="form-group">
+          <label for="id_trays_received" class="form-label">Trays Received *</label>
+          {{ delivery_form.trays_received }}
+          <div class="form-help">1 Tray = 30 eggs</div>
+          {% if delivery_form.trays_received.errors %}<div class="form-error">{{ delivery_form.trays_received.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="form-group">
+          <label for="id_purchase_price_per_tray" class="form-label">Price per Tray (KES) *</label>
+          {{ delivery_form.purchase_price_per_tray }}
+          <div class="form-help">e.g. 400.00</div>
+          {% if delivery_form.purchase_price_per_tray.errors %}<div class="form-error">{{ delivery_form.purchase_price_per_tray.errors.0 }}</div>{% endif %}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="id_delivery_date" class="form-label">Delivery Date & Time *</label>
+        {{ delivery_form.delivery_date }}
+        {% if delivery_form.delivery_date.errors %}<div class="form-error">{{ delivery_form.delivery_date.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="form-group">
+        <label for="id_receipt_image" class="form-label">Supplier Receipt / Invoice (Optional Image)</label>
+        {{ delivery_form.receipt_image }}
+        <div class="form-help">Stored securely via Cloudinary when configured for deployment.</div>
+        {% if delivery_form.receipt_image.errors %}<div class="form-error">{{ delivery_form.receipt_image.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="form-group">
+        <label for="id_notes" class="form-label">Delivery Notes / Invoice No.</label>
+        {{ delivery_form.notes }}
+        {% if delivery_form.notes.errors %}<div class="form-error">{{ delivery_form.notes.errors.0 }}</div>{% endif %}
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block" style="padding:0.85rem;">
+        <span>📦</span> Save Delivery & Add to Stock
+      </button>
+    </form>
+  </div>
+
+  <!-- Smart Restocking Calculator -->
+  <div class="card calculator-card">
+    <div class="card-header-clean">
+      <h3 class="card-title-clean">🧮 Restocking Calculator</h3>
+      <span class="badge badge-sale">Planning Tool</span>
+    </div>
+    <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem;">
+      Calculate how many full trays you need to order to reach your depot's target inventory:
+    </p>
+
+    <form method="post" action="{% url 'deliveries' %}">
+      {% csrf_token %}
+      <input type="hidden" name="calc_submit" value="1">
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+        <div class="form-group">
+          <label class="form-label">Target Full Trays</label>
+          {{ calc_form.target_trays }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cost per Tray (KES)</label>
+          {{ calc_form.purchase_cost_per_tray }}
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-secondary btn-block" style="margin-bottom:1.25rem;">
+        <span>🔄</span> Calculate Restock Plan
+      </button>
+    </form>
+
+    {% if calc_result %}
+      <div style="background:var(--surface-white); border:1px solid var(--border-light); border-radius:var(--radius-sm); padding:1rem;">
+        <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:0.75rem; font-size:0.9rem;">
+          <div>
+            <div class="calc-stat-label">Current Stock:</div>
+            <strong>{{ calc_result.current_stock_eggs }} eggs</strong>
+          </div>
+          <div>
+            <div class="calc-stat-label">Target Eggs:</div>
+            <strong>{{ calc_result.target_eggs }} eggs</strong>
+          </div>
+          <div>
+            <div class="calc-stat-label">Shortfall / Needed:</div>
+            <strong style="color:var(--color-error);">{{ calc_result.eggs_needed }} eggs</strong>
+          </div>
+          <div>
+            <div class="calc-stat-label">Order Required:</div>
+            <strong style="color:var(--primary-orange-hover); font-size:1.15rem;">{{ calc_result.trays_to_purchase }} trays</strong>
+          </div>
+          <div>
+            <div class="calc-stat-label">Projected Stock:</div>
+            <strong>{{ calc_result.projected_stock_eggs }} eggs</strong> ({{ calc_result.projected_full_trays }} trays, {{ calc_result.projected_loose_eggs }} loose)
+          </div>
+          <div>
+            <div class="calc-stat-label">Expected Cost:</div>
+            <strong style="color:var(--color-success); font-size:1.15rem;">KSh {{ calc_result.expected_cost|floatformat:2 }}</strong>
+          </div>
+        </div>
+
+        <div style="margin-top:0.75rem; padding-top:0.75rem; border-top:1px dashed #ddd; font-size:0.775rem; color:var(--text-muted);">
+          ℹ️ <em>{{ calc_result.note }}</em>
+        </div>
+      </div>
+    {% endif %}
+
+    <div style="margin-top:1.25rem; font-size:0.8rem; background:#EAF7EE; color:var(--color-success); padding:0.75rem; border-radius:var(--radius-sm);">
+      💡 <strong>Accounting note:</strong> Deliveries are capital inventory purchases, not operating expenses. They increase depot stock value and are only charged to profit as Cost of Goods Sold when eggs are actually sold.
+    </div>
+  </div>
+</div>
+
+<!-- Delivery History -->
+<div class="card">
+  <div class="card-header-clean">
+    <h3 class="card-title-clean">📜 Delivery History & Supplier Restocks</h3>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table-custom">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Date & Time</th>
+          <th>Supplier</th>
+          <th>Trays Received</th>
+          <th>Total Eggs</th>
+          <th>Price / Tray</th>
+          <th>Cost / Egg</th>
+          <th>Total Cost (KES)</th>
+          <th>Receipt</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in page_obj %}
+          <tr>
+            <td><strong>#{{ d.id }}</strong></td>
+            <td><small>{{ d.delivery_date|date:"d M Y, H:i" }}</small></td>
+            <td><strong>{{ d.supplier_name }}</strong></td>
+            <td>{{ d.trays_received }} trays</td>
+            <td><strong>+{{ d.eggs_received }} eggs</strong></td>
+            <td>KSh {{ d.purchase_price_per_tray|floatformat:2 }}</td>
+            <td><small>KSh {{ d.cost_per_egg|floatformat:2 }}</small></td>
+            <td><strong style="color:var(--text-dark);">KSh {{ d.total_cost|floatformat:2 }}</strong></td>
+            <td>
+              {% if d.receipt_image %}
+                <a href="{{ d.receipt_image.url }}" target="_blank" class="btn btn-secondary btn-sm" style="font-size:0.75rem;">
+                  📎 View Receipt
+                </a>
+              {% else %}
+                <span style="color:var(--text-muted); font-size:0.75rem;">None</span>
+              {% endif %}
+            </td>
+            <td><small>{{ d.notes|default:"-" }}</small></td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="10" style="text-align:center; padding:2rem; color:var(--text-muted);">
+              No deliveries recorded yet.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.has_other_pages %}
+    <div class="pagination-container">
+      <div style="font-size:0.85rem; color:var(--text-muted);">
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+      </div>
+      <div class="pagination-pages">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}" class="page-btn">&laquo; Prev</a>
+        {% endif %}
+        <span class="page-btn active">{{ page_obj.number }}</span>
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}" class="page-btn">Next &raquo;</a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

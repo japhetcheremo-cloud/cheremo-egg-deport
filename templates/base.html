@@ -1,0 +1,131 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Cheremo Egg Depot | Management System{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥚</text></svg>">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<div class="app-wrapper">
+  <!-- Desktop & Mobile Overlay -->
+  <div id="sidebarOverlay" style="position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:999; display:none;"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="brand-icon">🥚</div>
+      <div class="brand-text">
+        <h1>Cheremo</h1>
+        <span>Egg Depot Management</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+        <span class="nav-icon">📊</span>
+        <span>Dashboard</span>
+      </a>
+
+      <a href="{% url 'sales' %}" class="nav-link {% if request.resolver_match.url_name == 'sales' %}active{% endif %}">
+        <span class="nav-icon">🛒</span>
+        <span>Record Sale</span>
+      </a>
+
+      <a href="{% url 'deliveries' %}" class="nav-link {% if request.resolver_match.url_name == 'deliveries' %}active{% endif %}">
+        <span class="nav-icon">🚚</span>
+        <span>Deliveries / Restock</span>
+      </a>
+
+      <a href="{% url 'inventory' %}" class="nav-link {% if request.resolver_match.url_name == 'inventory' %}active{% endif %}">
+        <span class="nav-icon">📦</span>
+        <span>Inventory</span>
+      </a>
+
+      <a href="{% url 'expenses' %}" class="nav-link {% if request.resolver_match.url_name == 'expenses' %}active{% endif %}">
+        <span class="nav-icon">💸</span>
+        <span>Expenses</span>
+      </a>
+
+      <a href="{% url 'transactions' %}" class="nav-link {% if request.resolver_match.url_name == 'transactions' %}active{% endif %}">
+        <span class="nav-icon">📜</span>
+        <span>Transactions</span>
+      </a>
+
+      <a href="{% url 'reports' %}" class="nav-link {% if request.resolver_match.url_name == 'reports' %}active{% endif %}">
+        <span class="nav-icon">📈</span>
+        <span>Reports</span>
+      </a>
+
+      <a href="{% url 'settings' %}" class="nav-link {% if request.resolver_match.url_name == 'settings' %}active{% endif %}">
+        <span class="nav-icon">⚙️</span>
+        <span>Settings</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-badge">
+        <div class="user-avatar">{{ request.user.username|make_list|first|upper|default:"J" }}</div>
+        <div class="user-info">
+          <div class="user-name">{{ request.user.username|default:"japhet" }}</div>
+          <div class="user-role">Owner / Admin</div>
+        </div>
+      </div>
+      <a href="{% url 'logout' %}" class="btn-logout">
+        <span>🚪</span> Log Out
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content Wrapper -->
+  <div class="main-wrapper">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="mobile-menu-toggle" id="sidebarToggle" aria-label="Toggle Navigation">☰</button>
+        <h2 class="page-title">{% block page_title %}Dashboard{% endblock %}</h2>
+      </div>
+
+      <div class="topbar-right">
+        {% if inventory_status %}
+          <div class="stock-pill {% if is_low_stock %}low{% endif %}" title="Available egg stock">
+            <span>🥚 Stock:</span>
+            <strong>{{ inventory_status.total_eggs }} eggs</strong>
+            <small>({{ inventory_status.full_trays }} trays, {{ inventory_status.loose_eggs }} loose)</small>
+            {% if is_low_stock %}
+              <span style="font-size:0.75rem; background:#D93636; color:#fff; padding:2px 6px; border-radius:10px;">LOW</span>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+    </header>
+
+    <main class="content-container">
+      {% if messages %}
+        <ul class="messages-list">
+          {% for message in messages %}
+            <li class="alert alert-{{ message.tags }} alert-auto-dismiss">
+              <span>{{ message }}</span>
+              <button type="button" onclick="this.parentElement.remove()" style="background:none; border:none; cursor:pointer; font-size:1.1rem; line-height:1; color:inherit;">&times;</button>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer style="padding:1.25rem 2rem; border-top:1px solid var(--border-light); background:var(--surface-white); font-size:0.85rem; color:var(--text-muted); display:flex; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
+      <div>&copy; {{ current_year }} <strong>{{ business.business_name|default:"Cheremo Egg Depot" }}</strong>. Owner: {{ business.owner_name|default:"Japhet" }}.</div>
+      <div>Currency: <strong>{{ business.currency|default:"KES" }}</strong> | Timezone: <strong>{{ business.timezone_name|default:"Africa/Nairobi" }}</strong></div>
+    </footer>
+  </div>
+</div>
+
+<script src="{% static 'js/script.js' %}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

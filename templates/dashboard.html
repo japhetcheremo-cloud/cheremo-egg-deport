@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | Cheremo Egg Depot{% endblock %}
+{% block page_title %}Operational Dashboard{% endblock %}
+
+{% block content %}
+<!-- Low Stock Alert Banner -->
+{% if is_low_stock %}
+  <div class="alert alert-error" style="border-left: 6px solid #D93636; margin-bottom: 1.5rem;">
+    <div>
+      <h4 style="font-size: 1.05rem; margin-bottom: 0.25rem;">⚠️ Low Stock Warning!</h4>
+      <p style="font-size: 0.9rem; font-weight: 500;">
+        Current stock is <strong>{{ inventory.total_eggs }} eggs</strong> ({{ inventory.full_trays }} full trays, {{ inventory.loose_eggs }} loose).
+        The configured safety threshold is {{ business.low_stock_threshold }} eggs.
+      </p>
+    </div>
+    <a href="{% url 'deliveries' %}" class="btn btn-primary btn-sm">Order Restock</a>
+  </div>
+{% endif %}
+
+<!-- Quick Actions Banner -->
+<div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-bottom:1.75rem;">
+  <a href="{% url 'sales' %}" class="btn btn-primary">
+    <span>🛒</span> Record Sale
+  </a>
+  <a href="{% url 'deliveries' %}" class="btn btn-secondary">
+    <span>🚚</span> Restock Delivery
+  </a>
+  <a href="{% url 'expenses' %}" class="btn btn-secondary">
+    <span>💸</span> Record Expense
+  </a>
+  <a href="{% url 'inventory' %}" class="btn btn-secondary">
+    <span>⚠️</span> Egg Loss / Adjustment
+  </a>
+  <a href="{% url 'reports' %}" class="btn btn-secondary" style="margin-left:auto;">
+    <span>📊</span> Full Reports
+  </a>
+</div>
+
+<!-- Primary Stock & Today Metrics -->
+<div class="metrics-grid">
+  <!-- Stock Card -->
+  <div class="card metric-card accent-yellow">
+    <div class="metric-title">Eggs In Stock</div>
+    <div class="metric-value">{{ inventory.total_eggs }} <span style="font-size:1.1rem; font-weight:600; color:var(--text-muted);">eggs</span></div>
+    <div class="metric-sub">
+      <strong>{{ inventory.full_trays }}</strong> full trays + <strong>{{ inventory.loose_eggs }}</strong> loose
+    </div>
+    <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.35rem;">
+      Inventory Value: <strong>KSh {{ today.stock_value|floatformat:2 }}</strong> (@ KSh {{ today.wac_per_egg|floatformat:2 }}/egg)
+    </div>
+  </div>
+
+  <!-- Today's Revenue -->
+  <div class="card metric-card accent-success">
+    <div class="metric-title">Today's Sales Revenue</div>
+    <div class="metric-value">KSh {{ today.total_revenue|floatformat:2 }}</div>
+    <div class="metric-sub positive">
+      <strong>{{ today.sales_count }}</strong> sales today ({{ today.total_eggs_sold }} eggs sold)
+    </div>
+  </div>
+
+  <!-- Today's Gross Profit -->
+  <div class="card metric-card">
+    <div class="metric-title">Today's Gross Profit</div>
+    <div class="metric-value">KSh {{ today.gross_profit|floatformat:2 }}</div>
+    <div class="metric-sub">
+      Revenue minus COGS (KSh {{ today.total_cogs|floatformat:2 }})
+    </div>
+  </div>
+
+  <!-- Today's Net Profit -->
+  <div class="card metric-card {% if today.net_profit >= 0 %}accent-success{% else %}accent-error{% endif %}">
+    <div class="metric-title">Today's Net Profit</div>
+    <div class="metric-value" style="color:{% if today.net_profit >= 0 %}var(--color-success){% else %}var(--color-error){% endif %};">
+      KSh {{ today.net_profit|floatformat:2 }}
+    </div>
+    <div class="metric-sub">
+      After expenses (KSh {{ today.total_expenses|floatformat:2 }}) & losses (KSh {{ today.total_losses_cost|floatformat:2 }})
+    </div>
+  </div>
+</div>
+
+<!-- Secondary Metrics: Deliveries & Operating Outflows -->
+<div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 2rem;">
+  <div class="card" style="padding:1.1rem 1.25rem;">
+    <div class="metric-title">Today's Deliveries</div>
+    <div style="font-size:1.35rem; font-weight:800; color:var(--text-dark);">
+      {{ today_deliveries_count }} <span style="font-size:0.85rem; color:var(--text-muted);">batches</span>
+    </div>
+    <div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.25rem;">
+      Purchased: <strong>{{ today.total_trays_received }} trays</strong> (KSh {{ today.total_delivery_purchases|floatformat:2 }})
+    </div>
+  </div>
+
+  <div class="card" style="padding:1.1rem 1.25rem;">
+    <div class="metric-title">Today's Expenses</div>
+    <div style="font-size:1.35rem; font-weight:800; color:var(--color-warning);">
+      KSh {{ today.total_expenses|floatformat:2 }}
+    </div>
+    <div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.25rem;">
+      Operating costs (transport, packaging, etc.)
+    </div>
+  </div>
+
+  <div class="card" style="padding:1.1rem 1.25rem;">
+    <div class="metric-title">Today's Stock Losses</div>
+    <div style="font-size:1.35rem; font-weight:800; color:var(--color-error);">
+      {{ today.total_eggs_lost }} <span style="font-size:0.85rem; color:var(--text-muted);">eggs</span>
+    </div>
+    <div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.25rem;">
+      Financial impact: <strong>KSh {{ today.total_losses_cost|floatformat:2 }}</strong>
+    </div>
+  </div>
+
+  <div class="card" style="padding:1.1rem 1.25rem;">
+    <div class="metric-title">Costing (WAC)</div>
+    <div style="font-size:1.35rem; font-weight:800; color:var(--text-dark);">
+      KSh {{ today.wac_per_egg|floatformat:2 }} <span style="font-size:0.8rem; color:var(--text-muted);">/ egg</span>
+    </div>
+    <div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.25rem;">
+      Weighted Average Cost per egg
+    </div>
+  </div>
+</div>
+
+<!-- Two-Column Layout: 7-Day Performance & Restocking Recommendation -->
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:1.5rem; margin-bottom:2rem;">
+  <!-- Weekly Sales Trend -->
+  <div class="card">
+    <div class="card-header-clean">
+      <h3 class="card-title-clean">📈 Weekly Sales Summary (Last 7 Days)</h3>
+    </div>
+    <div class="table-responsive">
+      <table class="table-custom">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Eggs Sold</th>
+            <th>Revenue (KES)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for day in daily_chart_data %}
+            <tr>
+              <td><strong>{{ day.day_name }}</strong></td>
+              <td>{{ day.eggs }} eggs</td>
+              <td><strong>KSh {{ day.revenue|floatformat:2 }}</strong></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Restocking Calculator Summary -->
+  <div class="card calculator-card" style="margin-bottom:0;">
+    <div class="card-header-clean">
+      <h3 class="card-title-clean">🚚 Restocking Summary & Recommendation</h3>
+      <a href="{% url 'deliveries' %}" class="btn btn-secondary btn-sm">Full Calculator</a>
+    </div>
+    <p style="font-size:0.875rem; color:var(--text-muted); margin-bottom:1rem;">
+      Based on maintaining a target buffer of <strong>{{ restock_calc.target_trays }} trays ({{ restock_calc.target_eggs }} eggs)</strong>:
+    </p>
+
+    <div class="calc-result-grid">
+      <div>
+        <div class="calc-stat-label">Eggs Needed</div>
+        <div class="calc-stat-val">{{ restock_calc.eggs_needed }}</div>
+      </div>
+      <div>
+        <div class="calc-stat-label">Full Trays to Order</div>
+        <div class="calc-stat-val">{{ restock_calc.trays_to_purchase }} trays</div>
+      </div>
+      <div>
+        <div class="calc-stat-label">Projected Stock</div>
+        <div class="calc-stat-val">{{ restock_calc.projected_stock_eggs }} eggs</div>
+      </div>
+      <div>
+        <div class="calc-stat-label">Estimated Cost</div>
+        <div class="calc-stat-val">KSh {{ restock_calc.expected_cost|floatformat:2 }}</div>
+      </div>
+    </div>
+    <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.75rem;">
+      💡 {{ restock_calc.note }}
+    </p>
+  </div>
+</div>
+
+<!-- Recent Transactions / Audit Feed -->
+<div class="card">
+  <div class="card-header-clean">
+    <h3 class="card-title-clean">📜 Recent Stock Movements & Transactions</h3>
+    <a href="{% url 'transactions' %}" class="btn btn-secondary btn-sm">View All Transactions</a>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table-custom">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Type</th>
+          <th>Egg Change</th>
+          <th>Stock Balance</th>
+          <th>Value (KES)</th>
+          <th>Reference / Note</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in recent_movements %}
+          <tr>
+            <td><small>{{ m.created_at|date:"d M Y, H:i" }}</small></td>
+            <td>
+              <span class="badge 
+                {% if m.movement_type == 'sale' %}badge-sale
+                {% elif m.movement_type == 'delivery' %}badge-delivery
+                {% elif m.movement_type == 'loss' %}badge-loss
+                {% else %}badge-adjustment{% endif %}">
+                {{ m.get_movement_type_display }}
+              </span>
+            </td>
+            <td>
+              <strong style="color:{% if m.quantity_change > 0 %}var(--color-success){% else %}var(--color-error){% endif %};">
+                {% if m.quantity_change > 0 %}+{% endif %}{{ m.quantity_change }} eggs
+              </strong>
+            </td>
+            <td><strong>{{ m.balance_after }}</strong> eggs</td>
+            <td>KSh {{ m.total_value|floatformat:2 }}</td>
+            <td>{{ m.description }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" style="text-align:center; padding:2rem; color:var(--text-muted);">
+              No transactions recorded yet. <a href="{% url 'settings' %}">Initialize opening stock</a> or record a sale.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
