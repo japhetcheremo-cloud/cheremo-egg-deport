@@ -211,7 +211,7 @@ git init
 git add .
 git commit -m "Initial commit: Cheremo Egg Depot Management System"
 git branch -M main
-git remote add origin https://github.com/japhetcheremo-cloud/cheremo_egg_depot.git
+git remote add origin https://github.com/japhetcheremo-cloud/cheremo-egg-deport.git
 git push -u origin main
 ```
 
@@ -225,7 +225,7 @@ git push -u origin main
 
 ### Step 3: Create a Web Service on Render
 1. Click **New +** and select **Web Service**.
-2. Connect your GitHub repository `cheremo_egg_depot`.
+2. Connect your GitHub repository `cheremo-egg-deport`.
 3. Configure the following:
    - **Environment:** `Python 3`
    - **Build Command:** `./build.sh` (or `pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate`)
