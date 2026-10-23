@@ -27,12 +27,17 @@ if allowed_hosts_env.strip() == '*':
 else:
     ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_env.split(',') if host.strip()]
 
-if DEBUG and '*' not in ALLOWED_HOSTS and 'testserver' not in ALLOWED_HOSTS:
-    ALLOWED_HOSTS.append('testserver')
+if '*' not in ALLOWED_HOSTS:
+    for host in ['.vercel.app', '.onrender.com', 'testserver', '127.0.0.1', 'localhost']:
+        if host not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(host)
 
 # CSRF Trusted Origins
 csrf_origins_env = os.getenv('CSRF_TRUSTED_ORIGINS', '')
 CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_origins_env.split(',') if origin.strip()]
+for origin in ['https://*.vercel.app', 'https://*.onrender.com', 'http://127.0.0.1:8000', 'http://localhost:8000']:
+    if origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(origin)
 
 # Application definition
 INSTALLED_APPS = [
@@ -83,9 +88,12 @@ ASGI_APPLICATION = 'depot.asgi.application'
 
 # Database
 # Uses dj-database-url: SQLite for local default, PostgreSQL when DATABASE_URL is set
+is_vercel = os.getenv('VERCEL') == '1'
+default_db_path = '/tmp/db.sqlite3' if is_vercel else str(BASE_DIR / 'db.sqlite3')
+
 DATABASES = {
     'default': dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        default=f"sqlite:///{default_db_path}",
         conn_max_age=600,
         conn_health_checks=True,
     )
