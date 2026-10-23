@@ -211,7 +211,7 @@ git init
 git add .
 git commit -m "Initial commit: Cheremo Egg Depot Management System"
 git branch -M main
-git remote add origin https://github.com/your-username/cheremo_egg_depot.git
+git remote add origin https://github.com/japhetcheremo-cloud/cheremo_egg_depot.git
 git push -u origin main
 ```
 

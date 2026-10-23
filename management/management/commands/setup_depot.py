@@ -10,7 +10,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--username', type=str, default='japhet', help='Superuser login username (default: japhet)')
-        parser.add_argument('--email', type=str, default='japhet@cheremo.co.ke', help='Superuser email')
+        parser.add_argument('--email', type=str, default='japhetcheremo@gmail.com', help='Superuser email')
         parser.add_argument('--password', type=str, default=None, help='Superuser password (if omitted, will prompt or keep existing)')
         parser.add_argument('--init-stock', action='store_true', default=True, help='Initialize opening stock of 30 trays (900 eggs)')
 

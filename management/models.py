@@ -11,7 +11,7 @@ class BusinessSettings(models.Model):
     business_name = models.CharField(max_length=150, default="Cheremo Egg Depot")
     owner_name = models.CharField(max_length=100, default="Japhet")
     contact_phone = models.CharField(max_length=50, default="+254 700 000 000", blank=True)
-    contact_email = models.EmailField(default="cheremoeggdepot@gmail.com", blank=True)
+    contact_email = models.EmailField(default="japhetcheremo@gmail.com", blank=True)
     currency = models.CharField(max_length=10, default="KES")
     timezone_name = models.CharField(max_length=50, default="Africa/Nairobi")
 
