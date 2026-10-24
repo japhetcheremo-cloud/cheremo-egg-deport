@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load local environment variables.
+# Load local environment variables for development.
 load_dotenv(BASE_DIR / ".env")
 
 # --------------------------------------------------
@@ -30,7 +30,9 @@ DEBUG = os.getenv(
     "False" if IS_VERCEL else "True",
 ).strip().lower() in ("true", "1", "yes")
 
-if IS_VERCEL and SECRET_KEY.startswith("django-insecure-local-development"):
+if IS_VERCEL and SECRET_KEY.startswith(
+    "django-insecure-local-development"
+):
     raise RuntimeError(
         "Set a secure SECRET_KEY in Vercel Environment Variables."
     )
@@ -62,6 +64,11 @@ CSRF_TRUSTED_ORIGINS = [
     for origin in csrf_origins_env.split(",")
     if origin.strip()
 ]
+
+if IS_VERCEL:
+    default_origin = "https://cheremo-egg-deport-6un3.vercel.app"
+    if default_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(default_origin)
 
 # --------------------------------------------------
 # APPLICATIONS
@@ -128,12 +135,6 @@ DATABASE_URL = (
     or os.getenv("POSTGRES_URL")
 )
 
-if IS_VERCEL and not DATABASE_URL:
-    raise RuntimeError(
-        "PostgreSQL is not configured. Set DATABASE_URL "
-        "in Vercel Environment Variables."
-    )
-
 if DATABASE_URL:
     DATABASES = {
         "default": dj_database_url.parse(
@@ -143,6 +144,11 @@ if DATABASE_URL:
             ssl_require=True,
         )
     }
+elif IS_VERCEL:
+    raise RuntimeError(
+        "PostgreSQL is not configured. Set DATABASE_URL "
+        "or POSTGRES_URL in Vercel Environment Variables."
+    )
 else:
     # SQLite is for local development only.
     DATABASES = {
