@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load local environment variables when a .env file exists.
+# Load local environment variables.
 load_dotenv(BASE_DIR / ".env")
 
 # --------------------------------------------------
@@ -23,13 +23,26 @@ SECRET_KEY = os.getenv(
     "django-insecure-local-development-only-change-before-deployment",
 )
 
-DEBUG = os.getenv("DEBUG", "True").strip().lower() in ("true", "1", "yes")
+IS_VERCEL = os.getenv("VERCEL") == "1"
+
+DEBUG = os.getenv(
+    "DEBUG",
+    "False" if IS_VERCEL else "True",
+).strip().lower() in ("true", "1", "yes")
+
+if IS_VERCEL and SECRET_KEY.startswith("django-insecure-local-development"):
+    raise RuntimeError(
+        "Set a secure SECRET_KEY in Vercel Environment Variables."
+    )
 
 # --------------------------------------------------
 # HOSTS AND CSRF
 # --------------------------------------------------
 
-allowed_hosts_env = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1")
+allowed_hosts_env = os.getenv(
+    "ALLOWED_HOSTS",
+    "localhost,127.0.0.1",
+)
 
 ALLOWED_HOSTS = [
     host.strip()
@@ -37,8 +50,8 @@ ALLOWED_HOSTS = [
     if host.strip()
 ]
 
-if os.getenv("VERCEL") == "1":
-    ALLOWED_HOSTS.extend([".vercel.app"])
+if IS_VERCEL:
+    ALLOWED_HOSTS.append(".vercel.app")
 
 ALLOWED_HOSTS = list(dict.fromkeys(ALLOWED_HOSTS))
 
@@ -109,21 +122,29 @@ ASGI_APPLICATION = "depot.asgi.application"
 # --------------------------------------------------
 # DATABASE
 # --------------------------------------------------
-# Local development uses db.sqlite3.
-# Production should use a persistent PostgreSQL database
-# configured through the DATABASE_URL environment variable.
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = (
+    os.getenv("DATABASE_URL")
+    or os.getenv("POSTGRES_URL")
+)
+
+if IS_VERCEL and not DATABASE_URL:
+    raise RuntimeError(
+        "PostgreSQL is not configured. Set DATABASE_URL "
+        "in Vercel Environment Variables."
+    )
 
 if DATABASE_URL:
     DATABASES = {
         "default": dj_database_url.parse(
             DATABASE_URL,
-            conn_max_age=600,
+            conn_max_age=0,
             conn_health_checks=True,
+            ssl_require=True,
         )
     }
 else:
+    # SQLite is for local development only.
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
@@ -185,7 +206,9 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 STORAGES = {
     "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "BACKEND": (
+            "django.core.files.storage.FileSystemStorage"
+        ),
     },
     "staticfiles": {
         "BACKEND": (
@@ -209,11 +232,15 @@ LOGOUT_REDIRECT_URL = "login"
 # --------------------------------------------------
 
 if not DEBUG:
-    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_PROXY_SSL_HEADER = (
+        "HTTP_X_FORWARDED_PROTO",
+        "https",
+    )
 
     SECURE_SSL_REDIRECT = (
-        os.getenv("SECURE_SSL_REDIRECT", "True").strip().lower()
-        in ("true", "1", "yes")
+        os.getenv("SECURE_SSL_REDIRECT", "True")
+        .strip()
+        .lower() in ("true", "1", "yes")
     )
 
     SESSION_COOKIE_SECURE = True
